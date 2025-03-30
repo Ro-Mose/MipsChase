@@ -60,4 +60,80 @@ public class Target : MonoBehaviour
             }
         }
     }
+
+    void Update()
+    {
+        // find distance from player
+        float distanceToPlayer = Vector3.Distance(m_player.transform.position, transform.position);
+
+        // if too close to player hops away
+        if (m_nState == eState.kIdle && distanceToPlayer <= m_fScaredDistance)
+        {
+            m_nState = eState.kHopStart;  
+            m_fHopStart = Time.time; 
+            m_vHopStartPos = transform.position;  
+        }
+        else if (m_nState == eState.kHopStart)
+        {
+            
+            if (Time.time - m_fHopStart >= 0.1f)
+            {
+                m_nState = eState.kHop;  
+            }
+        }
+        else if (m_nState == eState.kHop)
+        {
+            //directions to move away from player
+            Vector3 directionAwayFromPlayer = (transform.position - m_player.transform.position).normalized;
+            Vector3 randomDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0).normalized;
+            Vector3 finalDirection = directionAwayFromPlayer + randomDirection;
+
+            finalDirection = finalDirection.normalized;
+
+            transform.position += finalDirection * m_fHopSpeed * Time.deltaTime;
+
+            // stands idle if player is far
+            if (Vector3.Distance(m_vHopStartPos, transform.position) >= 1.5f)
+            {
+                m_nState = eState.kIdle;
+            }
+        }
+        else if (m_nState == eState.kCaught)
+        {
+            // attaches to player after being caught
+            transform.parent = m_player.transform;
+            transform.localPosition = new Vector3(0.0f, -0.5f, 0.0f);  
+        }
+
+        // keeps player in bounds
+        Vector3 screenMin = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, 0));
+        Vector3 screenMax = Camera.main.ViewportToWorldPoint(new Vector3(1, 1, 0));
+
+        transform.position = new Vector3(
+            Mathf.Clamp(transform.position.x, screenMin.x, screenMax.x),
+            Mathf.Clamp(transform.position.y, screenMin.y, screenMax.y),
+            transform.position.z
+        );
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

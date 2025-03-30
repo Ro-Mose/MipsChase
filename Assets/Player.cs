@@ -103,4 +103,78 @@ public class Player : MonoBehaviour
     {
         GetComponent<Renderer>().material.color = stateColors[(int)m_nState];
     }
+
+    void Update()
+    {
+        // sees if player can dive
+        CheckForDive();
+
+        // updates direction and speed
+        UpdateDirectionAndSpeed();
+
+        // follows mouse
+        Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePosition.z = 0; 
+
+        Vector3 directionToMouse = (mousePosition - transform.position).normalized;
+
+        // mouse rotation
+        float targetAngle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg + 180;
+
+        //faces mouse
+        m_fAngle = Mathf.LerpAngle(m_fAngle, targetAngle, m_fFastRotateSpeed * 10f * Time.deltaTime);
+        transform.rotation = Quaternion.Euler(new Vector3(0, 0, m_fAngle));
+
+        
+        if (m_nState == eState.kMoveSlow)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, mousePosition, m_fSlowSpeed * 60.0f * Time.deltaTime);
+        }
+        else if (m_nState == eState.kMoveFast)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, mousePosition, m_fMaxSpeed * 60.0f * Time.deltaTime);
+        }
+        else if (m_nState == eState.kDiving)
+        {
+            // dives
+            float diveProgress = (Time.time - m_fDiveStartTime) / m_fDiveTime;
+            transform.position = Vector3.Lerp(m_vDiveStartPos, m_vDiveEndPos, diveProgress);
+
+            // Check if the dive is finished
+            if (diveProgress >= 1.0f)
+            {
+                // if dive finished, recovers
+                m_nState = eState.kRecovering;
+                m_fSpeed = 0.0f;
+                m_fDiveStartTime = Time.time;
+            }
+        }
+        else if (m_nState == eState.kRecovering)
+        {
+            // recovery time for dive
+            if (Time.time - m_fDiveStartTime >= m_fDiveRecoveryTime)
+            {
+                //slower movement
+                m_nState = eState.kMoveSlow;
+            }
+        }
+
+        // keeps player in bounds
+        Vector3 screenMin = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, 0));
+        Vector3 screenMax = Camera.main.ViewportToWorldPoint(new Vector3(1, 1, 0));
+
+        transform.position = new Vector3(
+            Mathf.Clamp(transform.position.x, screenMin.x, screenMax.x),
+            Mathf.Clamp(transform.position.y, screenMin.y, screenMax.y),
+            transform.position.z
+        );
+    }
+
+
+
+
+
+
+
+
 }
